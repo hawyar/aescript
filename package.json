@@ -1,0 +1,17 @@
+{
+  "name": "aescript",
+  "description": "The missing CLI utility for Agfter Effects Scripts",
+  "version": "1.0.0",
+  "bin": "cli.js",
+  "main": "cli.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hawyar",
+  "license": "ISC",
+  "dependencies": {
+    "arg": "^5.0.1",
+    "picocolors": "^1.0.0"
+  }
+}
