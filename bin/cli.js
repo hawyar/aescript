@@ -11,14 +11,18 @@ ${pc.bold('Usage:')}
 
 ${pc.bold('Commands:')}
     ls        List all installed scripts
-    run       Run After Effects script
+    run       Run a script
+
+${pc.bold('Arguments:')}
+    [script]  Path to script to run (example: /path/to/script.jsx)
 
 ${pc.bold('Flags:')}
     -v    --version       Print version
     -h    --help          Print help (what you are reading now)
   
 ${pc.bold('Example:')} 
-    aescript install /path/to/script.jsxbin
+    aescript ls
+    aescript run /path/to/script.jsx
 `
 
 async function run () {
@@ -54,7 +58,7 @@ async function run () {
 
     const scripts = fs.readdirSync(scriptsPath)
 
-    print(`${pc.bold('Installed Scripts:')}`)
+    print(pc.bold('Installed Scripts:'))
 
     scripts.filter(script => isJsx(script)).forEach(script => print(`  - ${stripExtension(script)}`))
 
@@ -63,32 +67,28 @@ async function run () {
 
     if (scriptUI.length > 0) {
       print('\n')
-      print(`${pc.bold('ScriptUI Panels:')}`)
+      print(pc.bold('ScriptUI Panels:'))
       scriptUI.filter(script => isJsx(script)).forEach(script => print(`  - ${stripExtension(script)}`))
     }
-
     process.exit(0)
   }
 
   if (command === 'run') {
-
     if (args._.length === 1) {
       print(`${pc.bold('Error:')} You must specify a script to run`)
       process.exit(1)
     }
-    
-    const aeVersion = ae.match(/\d{4}$/)[0]
 
     const raw = fs.readFileSync(args._[1], 'utf8')
 
-    const escaped = `"${raw.replace(/"/g, '\\"')}"`
-    
-    const child = await exec(`osascript bin/launch.scpt ${aeVersion} ${escaped}`)
+    const escaped = raw.replace(/"/g, '\\"')
 
-    print(`${pc.magenta("Script running")}`)
-    
+    const child = await exec(`osascript bin/launch.scpt "${ae}.app" "${escaped}"`)
+
+    print(pc.magenta('Running script in After Effects...'))
+
     let chunk = ''
-    
+
     child.stdout.on('data', data => {
       chunk += data
     })
@@ -99,10 +99,10 @@ async function run () {
 
     child.on('close', code => {
       if (code !== 0) {
-        print(`${pc.red('Error:')} ${chunk}`)
+        print(pc.red('Error:' + chunk))
         process.exit(1)
       }
-      print(`${pc.green('Success:')} ${chunk}`)
+      print(pc.green('Success:') + chunk)
       process.exit(0)
     })
 
@@ -125,6 +125,11 @@ function stripExtension (path) {
   return path.replace(/\.[^/.]+$/, '')
 }
 
+process.on('unhandledRejection', (reason) => {
+  print(reason)
+  process.exit(1)
+})
+
 run().catch(err => {
   if (err.code === 'ARG_UNKNOWN_OPTION') {
     const errMsg = err.message.split('\n')
@@ -132,10 +137,5 @@ run().catch(err => {
     process.exit(1)
   }
   print(err)
-  process.exit(1)
-})
-
-process.on('unhandledRejection', (reason) => {
-  print(reason)
   process.exit(1)
 })
