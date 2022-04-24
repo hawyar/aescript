@@ -15,7 +15,7 @@ tap.test('test script lang', (t) => {
 })
 
 tap.test('test script duplicate', (t) => {
-  exec('node bin/cli.js run "./test/duplicate.jsx"', (err, stdout, stderr) => {
+  exec('node bin/cli.js run "./test/render.jsx"', (err, stdout, stderr) => {
     if (err) {
       t.fail(err)
     }

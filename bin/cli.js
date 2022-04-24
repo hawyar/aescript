@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import arg from 'arg'
 import pc from 'picocolors'
-import fs from 'fs'
+import { readFile, readdir } from 'fs/promises'
 import path from 'path'
 import { exec } from 'child_process'
+import { rename } from 'fs'
 
 const usage = `
 ${pc.bold('Usage:')}
@@ -11,6 +12,7 @@ ${pc.bold('Usage:')}
 
 ${pc.bold('Commands:')}
     ls        List all installed scripts
+    install   Install a script
     run       Run a script
 
 ${pc.bold('Arguments:')}
@@ -49,27 +51,37 @@ async function run () {
   }
 
   const command = args._[0]
-  const apps = fs.readdirSync('/Applications')
+
+  const apps = await readdir('/Applications').catch(err => {
+    print(err)
+    process.exit(1)
+  })
 
   const ae = apps.filter(app => app.includes('Adobe After Effects'))[0]
 
   if (command === 'ls') {
     const scriptsPath = path.join('/Applications', ae, 'Scripts')
 
-    const scripts = fs.readdirSync(scriptsPath)
+    const installedScripts = []
+
+    const scripts = await readdir(scriptsPath).catch(err => {
+      print(err)
+      process.exit(1)
+    })
+
+    installedScripts.push(...scripts.filter(isJsx))
+
+    const scriptUIPanel = await readdir(scriptsPath + '/ScriptUI Panels')
+
+    if (scriptUIPanel.length > 0) {
+      installedScripts.push(...scriptUIPanel.filter(isJsx))
+    }
 
     print(pc.bold('Installed Scripts:'))
 
-    scripts.filter(script => isJsx(script)).forEach(script => print(`  - ${stripExtension(script)}`))
-
-    // also check ScriptUI Panel scripts
-    const scriptUI = fs.readdirSync(scriptsPath + '/ScriptUI Panels')
-
-    if (scriptUI.length > 0) {
-      print('\n')
-      print(pc.bold('ScriptUI Panels:'))
-      scriptUI.filter(script => isJsx(script)).forEach(script => print(`  - ${stripExtension(script)}`))
-    }
+    installedScripts.forEach(script => {
+      print('- ' + stripExtension(script))
+    })
     process.exit(0)
   }
 
@@ -79,7 +91,7 @@ async function run () {
       process.exit(1)
     }
 
-    const raw = fs.readFileSync(args._[1], 'utf8')
+    const raw = await readFile(args._[1], 'utf8')
 
     const escaped = raw.replace(/"/g, '\\"')
 
@@ -102,13 +114,48 @@ async function run () {
         print(pc.red('Error:' + chunk))
         process.exit(1)
       }
-      print(pc.green('Success:') + chunk)
+      print(pc.green('Success: ') + chunk)
       process.exit(0)
     })
 
-    return
+    child.on('error', err => {
+      print(err)
+      process.exit(1)
+    })
   }
-  print(usage)
+
+  if (command === 'install') {
+    if (!args._[1]) {
+      print(`${pc.bold('Error:')} You must specify a script to install`)
+      process.exit(1)
+    }
+    const script = args._[1]
+
+    print(script)
+
+    const installed = await readdir(`/Applications/${ae}/Scripts/ScriptUI Panels`).catch(err => {
+      print(22)
+      print(err)
+      process.exit(1)
+    })
+
+    if (installed.includes(script)) {
+      print(`${pc.bold('Error:')} ${script} is already installed`)
+      process.exit(1)
+    }
+    print(path.join('/Applications', ae, 'Scripts', 'Script UI Panels', path.basename(script)))
+    rename(script, path.join('/Applications', ae, 'Scripts', 'Script UI Panels', path.basename(script)), err => {
+      if (err) {
+        print(err)
+        process.exit(1)
+      }
+    })
+
+    print(pc.green('Success: ') + script + ' installed')
+    process.exit(0)
+  }
+
+  print(`${pc.bold('Error:')} Unknown command ${command}`)
 }
 
 function print (msg) {
@@ -131,11 +178,7 @@ process.on('unhandledRejection', (reason) => {
 })
 
 run().catch(err => {
-  if (err.code === 'ARG_UNKNOWN_OPTION') {
-    const errMsg = err.message.split('\n')
-    print(errMsg)
-    process.exit(1)
-  }
-  print(err)
+  const errMsg = err.message.split('\n')
+  print(pc.red('Error: ') + errMsg[0])
   process.exit(1)
 })

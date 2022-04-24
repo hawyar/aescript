@@ -1,9 +1,9 @@
 ## aescript
 
-> The missing CLI for After Effects Scripts
+> CLI utility for After Effects Scripts
 
-- Run Adobe ExtendScript
-- List installed scripts
+- Run Adobe ExtendScript script (.jsx)
+- Install scripts
 
 
 ### Usage
@@ -14,12 +14,11 @@ List all installed packages
 aescript ls
 ```
 
-Run a script 
+Run a script file
 
 ```bash
 aescript run /path/to/script.jsx
 ```
-
 
 ### CLI
 ```
@@ -40,5 +39,4 @@ Flags:
 Example: 
     aescript ls
     aescript run /path/to/script.jsx
- 
 ```
