@@ -27,6 +27,7 @@ Usage:
 
 Commands:
     ls        List all installed scripts
+    install   Install a script
     run       Run a script
 
 Arguments:
@@ -38,5 +39,6 @@ Flags:
   
 Example: 
     aescript ls
+    aescript install /path/to/script.jsx
     aescript run /path/to/script.jsx
 ```
